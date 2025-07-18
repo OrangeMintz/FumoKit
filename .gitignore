@@ -3,3 +3,4 @@ main.py.bak
 discord.log
 # Ignore Python bytecode files
 __pycache__/
+requirements.txt
