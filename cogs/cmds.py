@@ -6,7 +6,7 @@ from models.game_model import GameModel
 class AllBotCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.gaming_channel = [1256421833884958800, 903261559181160478, 1255987489907277896]
+        self.gaming_channel = [1256421833884958800, 903261559181160478, 1255987489907277896, 1395461570972225537]
 
     @commands.command()
     async def game(self, ctx, *, args: str):
@@ -24,18 +24,32 @@ class AllBotCommands(commands.Cog):
 
             title, desc, vers, size, date, link, image_url = parts
 
-            # Store in database
-            GameModel.create_game(
-                author=str(ctx.author.display_name),
-                author_id=str(ctx.author.id),
-                title=title,
-                desc=desc,
-                vers=vers,
-                size=size,
-                date=date,
-                link=link,
-                image_url=image_url
-            )
+            # Check if game exists
+            existing_game = GameModel.get_game_by_title(title)
+
+            if existing_game:
+                GameModel.update_game_by_title(title, {
+                    "author": str(ctx.author),
+                    "author_id": str(ctx.author.id),
+                    "description": desc,
+                    "version": vers,
+                    "size": size,
+                    "date": date,
+                    "link": link,
+                    "image_url": image_url
+                })
+            else:
+                GameModel.create_game(
+                    author=str(ctx.author),
+                    author_id=str(ctx.author.id),
+                    title=title,
+                    desc=desc,
+                    vers=vers,
+                    size=size,
+                    date=date,
+                    link=link,
+                    image_url=image_url
+                )
 
             # Build embed
             embed = discord.Embed(title=title, description=desc, url=link, color=discord.Color.random())
@@ -54,7 +68,7 @@ class AllBotCommands(commands.Cog):
             button = Button(label="Download", style=discord.ButtonStyle.link, url=link, emoji=emoji)
             view.add_item(button)
 
-            games_channel = self.bot.get_channel(1255987489907277896)
+            games_channel = self.bot.get_channel(1395461570972225537)  # Replace with your actual games channel ID
             if games_channel:
                 await games_channel.send(embed=embed, view=view)
                 await ctx.send(f"{ctx.author.display_name} posted a game at <#1255987489907277896>")

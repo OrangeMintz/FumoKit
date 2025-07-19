@@ -15,15 +15,11 @@ class GameModel:
             "image_url": image_url
         }
         return games_collection.insert_one(game_data)
+    
+    @staticmethod
+    def get_game_by_title(title):
+        return games_collection.find_one({"title": title})
 
-# config/db.py
-from pymongo import MongoClient
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-MONGO_URI = os.getenv("MONGODb")
-client = MongoClient(MONGO_URI)
-db = client["discord_bot"]
-games_collection = db["games"]
+    @staticmethod
+    def update_game_by_title(title, update_data):
+        return games_collection.update_one({"title": title}, {"$set": update_data})
