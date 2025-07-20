@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 from models.game_model import GameModel
+from datetime import datetime, timezone
 
 class AllBotCommands(commands.Cog):
     def __init__(self, bot):
@@ -23,6 +24,7 @@ class AllBotCommands(commands.Cog):
                 return
 
             title, desc, vers, size, date, link, image_url = parts
+            now = datetime.now(timezone.utc)
 
             # Check if game exists
             existing_game = GameModel.get_game_by_title(title)
@@ -36,19 +38,22 @@ class AllBotCommands(commands.Cog):
                     "size": size,
                     "date": date,
                     "link": link,
-                    "image_url": image_url
+                    "image_url": image_url,
+                    "updated_at": now
                 })
             else:
-                GameModel.create_game(
-                    author=str(ctx.author),
-                    author_id=str(ctx.author.id),
-                    title=title,
-                    desc=desc,
-                    vers=vers,
-                    size=size,
-                    date=date,
-                    link=link,
-                    image_url=image_url
+                GameModel.create_game({
+                    "author": str(ctx.author),
+                    "author_id": str(ctx.author.id),
+                    "description": desc,
+                    "version": vers,
+                    "size": size,
+                    "date": date,
+                    "link": link,
+                    "image_url": image_url,
+                    "created_at": now,
+                    "updated_at": now
+                    }
                 )
 
             # Build embed
@@ -60,7 +65,7 @@ class AllBotCommands(commands.Cog):
             embed.add_field(name=":date: Release Date", value=date, inline=True)
             embed.set_image(url=image_url)
             embed.set_footer(text=f"Game submitted by {ctx.author.display_name}")
-            embed.timestamp = ctx.message.created_at
+            embed.timestamp = now
 
             # Build button
             view = View()
