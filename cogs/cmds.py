@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 from discord.ui import Button, View
 from models.game_model import GameModel
 from datetime import datetime, timezone
@@ -7,35 +8,35 @@ from datetime import datetime, timezone
 class AllBotCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # 1395461570972225537 is a test channel
         self.gaming_channel = [1256421833884958800, 903261559181160478, 1255987489907277896, 1395461570972225537]
-        self.gaming_role = ["Admin", "Moderator", "Pirata"]
+        self.gaming_role = ["Pirata"]
 
-    @commands.command()
-    async def game(self, ctx, *, args: str):
+    @app_commands.command(name="game", description="Post or update a game")
+    @app_commands.describe(
+        title="Game title",
+        description="Game description",
+        version="Game version",
+        size="Game size",
+        date="Release date",
+        link="Download link",
+        image_url="Image URL"
+    )
+    async def game(self, interaction: discord.Interaction, title: str, description: str, version: str, size: str, date: str, link: str, image_url: str):
         try:
-            await ctx.message.delete()
-
-            if ctx.channel.id not in self.gaming_channel:
-                await ctx.send("Please use this command at <#1256421833884958800> or <#903261559181160478> or <#1255987489907277896> only.")
+            if interaction.channel_id not in self.gaming_channel:
+                await interaction.response.send_message("Please use this command in the designated game channels only.", ephemeral=True)
                 return
 
-            parts = [arg.strip('"') for arg in args.split('"') if arg.strip() and arg != ' ']
-            if len(parts) != 7:
-                await ctx.send("Please format your command like:\n`!game \"Title\" \"Description\" \"Version\" \"Size\" \"Date\" \"Link\" \"Image URL\"`")
-                return
-
-            title, desc, vers, size, date, link, image_url = parts
             now = datetime.now(timezone.utc)
-
-            # Check if game exists
             existing_game = GameModel.get_game_by_title(title)
 
             if existing_game:
                 GameModel.update_game_by_title(title, {
-                    "author": str(ctx.author),
-                    "author_id": str(ctx.author.id),
-                    "description": desc,
-                    "version": vers,
+                    "author": str(interaction.user),
+                    "author_id": str(interaction.user.id),
+                    "description": description,
+                    "version": version,
                     "size": size,
                     "date": date,
                     "link": link,
@@ -44,60 +45,56 @@ class AllBotCommands(commands.Cog):
                 })
             else:
                 GameModel.create_game({
-                    "author": str(ctx.author),
-                    "author_id": str(ctx.author.id),
+                    "author": str(interaction.user),
+                    "author_id": str(interaction.user.id),
                     "title": title,
-                    "description": desc,
-                    "version": vers,
+                    "description": description,
+                    "version": version,
                     "size": size,
                     "date": date,
                     "link": link,
                     "image_url": image_url,
                     "created_at": now,
                     "updated_at": now
-                    }
-                )
+                })
 
-            # Build embed
-            embed = discord.Embed(title=title, description=desc, url=link, color=discord.Color.random())
+            embed = discord.Embed(title=title, description=description, url=link, color=discord.Color.random())
             embed.set_thumbnail(url=image_url)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar or ctx.author.default_avatar.url)
-            embed.add_field(name=":tools: Version", value=vers, inline=True)
+            embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+            embed.add_field(name=":tools: Version", value=version, inline=True)
             embed.add_field(name=":floppy_disk: Size", value=size, inline=True)
             embed.add_field(name=":date: Release Date", value=date, inline=True)
             embed.set_image(url=image_url)
-            embed.set_footer(text=f"Game submitted by {ctx.author.display_name}")
+            embed.set_footer(text=f"Game submitted by {interaction.user.display_name}")
             embed.timestamp = now
-
-            # Build button
             view = View()
             emoji = self.bot.get_emoji(1144807049297924116)
             button = Button(label="Download", style=discord.ButtonStyle.link, url=link, emoji=emoji)
             view.add_item(button)
 
-            games_channel = self.bot.get_channel(1255987489907277896)  # Replace with your actual games channel ID
+            games_channel = self.bot.get_channel(1255987489907277896)
             if games_channel:
                 await games_channel.send(embed=embed, view=view)
-                await ctx.send(f"{ctx.author.display_name} posted a game at <#1255987489907277896>")
+                await interaction.response.send_message(f"{interaction.user.display_name} posted a game at <#{games_channel.id}>", ephemeral=True)
             else:
-                await ctx.send("Games channel not found.")
+                await interaction.response.send_message("Games channel not found.", ephemeral=True)
 
         except Exception as e:
-            await ctx.send(f"Something went wrong: {e}")
-                
-    @commands.command()
-    async def listgames(self, ctx):
-        
-        if not any(role.name in self.gaming_role for role in ctx.author.roles):
-            await ctx.send(f":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>")
-            return
-        
-        games = GameModel.list_game()
-        if not games:
-            await ctx.send("No games found.")
+            await interaction.response.send_message(f"Something went wrong: {e}", ephemeral=True)
+
+    @app_commands.command(name="listgames", description="List all submitted games")
+    async def listgames(self, interaction: discord.Interaction):
+        member = interaction.user
+        if not any(role.name in self.gaming_role for role in member.roles):
+            await interaction.response.send_message(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
             return
 
-        embed = discord.Embed(title="📋 Game List", color=discord.Color.blue())
+        games = GameModel.list_game()
+        if not games:
+            await interaction.response.send_message("No games found.", ephemeral=True)
+            return
+
+        embed = discord.Embed(title=":clipboard: Game List", color=discord.Color.blue())
         for game in games:
             embed.add_field(
                 name=game.get("title", "No Title"),
@@ -105,7 +102,7 @@ class AllBotCommands(commands.Cog):
                 inline=False
             )
 
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(AllBotCommands(bot))

@@ -18,6 +18,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # EVENTS
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print(f"Hello! We have logged in as {bot.user.name}")
 
 @bot.event
