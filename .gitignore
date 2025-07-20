@@ -1,6 +1,6 @@
 .env
-main.py.bak
 discord.log
+temp
+requirements.txt
 # Ignore Python bytecode files
 __pycache__/
-requirements.txt

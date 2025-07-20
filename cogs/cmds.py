@@ -8,6 +8,7 @@ class AllBotCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.gaming_channel = [1256421833884958800, 903261559181160478, 1255987489907277896, 1395461570972225537]
+        self.gaming_role = ["Admin", "Moderator", "Pirata"]
 
     @commands.command()
     async def game(self, ctx, *, args: str):
@@ -45,6 +46,7 @@ class AllBotCommands(commands.Cog):
                 GameModel.create_game({
                     "author": str(ctx.author),
                     "author_id": str(ctx.author.id),
+                    "title": title,
                     "description": desc,
                     "version": vers,
                     "size": size,
@@ -73,7 +75,7 @@ class AllBotCommands(commands.Cog):
             button = Button(label="Download", style=discord.ButtonStyle.link, url=link, emoji=emoji)
             view.add_item(button)
 
-            games_channel = self.bot.get_channel(1395461570972225537)  # Replace with your actual games channel ID
+            games_channel = self.bot.get_channel(1255987489907277896)  # Replace with your actual games channel ID
             if games_channel:
                 await games_channel.send(embed=embed, view=view)
                 await ctx.send(f"{ctx.author.display_name} posted a game at <#1255987489907277896>")
@@ -82,6 +84,28 @@ class AllBotCommands(commands.Cog):
 
         except Exception as e:
             await ctx.send(f"Something went wrong: {e}")
+                
+    @commands.command()
+    async def listgames(self, ctx):
+        
+        if not any(role.name in self.gaming_role for role in ctx.author.roles):
+            await ctx.send(f":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>")
+            return
+        
+        games = GameModel.list_game()
+        if not games:
+            await ctx.send("No games found.")
+            return
+
+        embed = discord.Embed(title="📋 Game List", color=discord.Color.blue())
+        for game in games:
+            embed.add_field(
+                name=game.get("title", "No Title"),
+                value=f"Version: {game.get('version', 'N/A')} | Size: {game.get('size', 'N/A')} | Date: {game.get('date', 'N/A')}\nAuthor: {game.get('author', 'Unknown')}\n[Download]({game.get('link', '#')})",
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(AllBotCommands(bot))

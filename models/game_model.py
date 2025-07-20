@@ -12,3 +12,7 @@ class GameModel:
     @staticmethod
     def update_game_by_title(title, update_data):
         return games_collection.update_one({"title": title}, {"$set": update_data})
+    
+    @staticmethod
+    def list_game():
+        return games_collection.find()
