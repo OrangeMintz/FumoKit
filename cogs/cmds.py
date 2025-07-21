@@ -9,16 +9,17 @@ class AllBotCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         # 1395461570972225537 is a test channel
+        # 1255987489907277896 is the channel for game submissions
         self.gaming_channel = [1256421833884958800, 903261559181160478, 1255987489907277896, 1395461570972225537]
-        self.gaming_role = ["Pirata"]
+        self.gaming_role = ["Admin", "Moderator", "Pirata"]
 
     @app_commands.command(name="game", description="Post or update a game")
     @app_commands.describe(
-        title="Game title",
-        description="Game description",
-        version="Game version",
-        size="Game size",
-        date="Release date",
+        title="Title",
+        description="Description",
+        version="Version",
+        size="Size",
+        date="Release Date",
         link="Download link",
         image_url="Image URL"
     )
@@ -69,13 +70,13 @@ class AllBotCommands(commands.Cog):
             embed.timestamp = now
             view = View()
             emoji = self.bot.get_emoji(1144807049297924116)
-            button = Button(label="Download", style=discord.ButtonStyle.link, url=link, emoji=emoji)
+            button = Button(label="Download", style=discord.ButtonStyle.premium, url=link, emoji=emoji)
             view.add_item(button)
 
             games_channel = self.bot.get_channel(1255987489907277896)
             if games_channel:
                 await games_channel.send(embed=embed, view=view)
-                await interaction.response.send_message(f"{interaction.user.display_name} posted a game at <#{games_channel.id}>", ephemeral=True)
+                await interaction.response.send_message(f"{interaction.user.display_name} posted a game at <#{games_channel.id}>", ephemeral=False)
             else:
                 await interaction.response.send_message("Games channel not found.", ephemeral=True)
 
@@ -103,6 +104,25 @@ class AllBotCommands(commands.Cog):
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=False)
+        
+        
+    @app_commands.command(name="deletegame", description="Delete a submitted game")
+    @app_commands.describe(
+        title="Title of the game to delete",
+    )
+    async def deletegame(self, interaction: discord.Interaction, title: str):
+        member = interaction.user
+        if not any(role.name in self.gaming_role for role in member.roles):
+            await interaction.response.send_message(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
+            return
+
+        game = GameModel.delete_game(title)
+        
+        if game.deleted_count == 0:
+            await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=False)
+            return
+        await interaction.response.send_message(f"<a:walter:1260121444269162506> {interaction.user.display_name} successfully deleted {title}", ephemeral=False)
+        return
 
 async def setup(bot):
     await bot.add_cog(AllBotCommands(bot))

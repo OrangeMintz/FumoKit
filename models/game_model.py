@@ -16,3 +16,7 @@ class GameModel:
     @staticmethod
     def list_game():
         return games_collection.find()
+    
+    @staticmethod
+    def delete_game(title):
+        return games_collection.delete_one({"title": title})
