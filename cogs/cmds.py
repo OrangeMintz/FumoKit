@@ -13,7 +13,7 @@ class AllBotCommands(commands.Cog):
         self.gaming_channel = [1256421833884958800, 903261559181160478, 1255987489907277896, 1395461570972225537]
         self.gaming_role = ["Admin", "Moderator", "Pirata"]
 
-    @app_commands.command(name="game", description="Post or update a game")
+    @app_commands.command(name="submitgame", description="Submit or update a game")
     @app_commands.describe(
         title="Title",
         description="Description",
@@ -23,7 +23,7 @@ class AllBotCommands(commands.Cog):
         link="Download link",
         image_url="Image URL"
     )
-    async def game(self, interaction: discord.Interaction, title: str, description: str, version: str, size: str, date: str, link: str, image_url: str):
+    async def submitgame(self, interaction: discord.Interaction, title: str, description: str, version: str, size: str, date: str, link: str, image_url: str):
         try:
             if interaction.channel_id not in self.gaming_channel:
                 await interaction.response.send_message("Please use this command in the designated game channels only.", ephemeral=True)
@@ -123,6 +123,42 @@ class AllBotCommands(commands.Cog):
             return
         await interaction.response.send_message(f"<a:walter:1260121444269162506> {interaction.user.display_name} successfully deleted {title}", ephemeral=False)
         return
+    
+    
+    @app_commands.command(name="game", description="Retrieve a submitted game")
+    @app_commands.describe(
+        title="Title of the game",
+    )
+    async def game(self, interaction: discord.Interaction, title: str):
+        member = interaction.user
+        if not any(role.name in self.gaming_role for role in member.roles):
+            await interaction.response.send_message(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
+            return
+
+        game = GameModel.get_game_by_title(title)
+        if not game:
+            await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=True)
+            return
+        
+        embed = discord.Embed(
+        title=game.get("title"),
+        description=game.get("description", "No description provided."),
+        url=game.get("link"),
+        color=discord.Color.random()
+        )
+        embed.set_thumbnail(url=game.get("image_url"))
+        embed.set_author(name="author")
+        embed.add_field(name=":tools: Version", value=game.get("version", "N/A"), inline=True)
+        embed.add_field(name=":floppy_disk: Size", value=game.get("size", "N/A"), inline=True)
+        embed.add_field(name=":date: Release Date", value=game.get("date", "N/A"), inline=True)
+        embed.set_image(url=game.get("image_url"))
+        embed.set_footer(text=f"Game submitted by {game.get('author')}")
+        embed.timestamp = game.get("updated_at")
+        view = View()
+        emoji = self.bot.get_emoji(1144807049297924116)
+        button = Button(label="Download", style=discord.ButtonStyle.premium, url=game.get("link", "#"), emoji=emoji)
+        view.add_item(button)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(AllBotCommands(bot))
