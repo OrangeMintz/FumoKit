@@ -26,3 +26,9 @@ async def setup_hook():
     await bot.load_extension('cogs.cmds')
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
+
+# Further testing and feature expansion can be done here. 
+# from api.fitgirl import FitGirl
+
+# new_posts = FitGirl.new_posts()
+# print(new_posts)
