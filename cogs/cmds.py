@@ -137,7 +137,7 @@ class AllBotCommands(commands.Cog):
 
         game = GameModel.get_game_by_title(title)
         if not game:
-            await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=True)
+            await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=False)
             return
         
         embed = discord.Embed(
@@ -158,7 +158,7 @@ class AllBotCommands(commands.Cog):
         emoji = self.bot.get_emoji(1144807049297924116)
         button = Button(label="Download", style=discord.ButtonStyle.premium, url=game.get("link", "#"), emoji=emoji)
         view.add_item(button)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(AllBotCommands(bot))
