@@ -25,6 +25,12 @@ class AllBotCommands(commands.Cog):
     )
     async def submitgame(self, interaction: discord.Interaction, title: str, description: str, version: str, size: str, date: str, link: str, image_url: str):
         try:
+            member = interaction.user
+            if not any(role.name in self.gaming_role for role in member.roles):
+                await interaction.response.send_message(":x: You do not have permission to submit games.",
+                    ephemeral=True)
+                return
+            
             if interaction.channel_id not in self.gaming_channel:
                 await interaction.response.send_message("Please use this command in the designated game channels only.", ephemeral=True)
                 return
