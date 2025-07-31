@@ -103,19 +103,16 @@ class AllBotCommands(commands.Cog):
 
         embed = discord.Embed(title=":clipboard: Game List", color=discord.Color.blue())
         for game in games:
+            author = await self.bot.fetch_user(int(game["author_id"]))
             embed.add_field(
                 name=game.get("title", "No Title"),
-                value=f"Version: {game.get('version', 'N/A')} | Size: {game.get('size', 'N/A')} | Date: {game.get('date', 'N/A')}\nAuthor: {game.get('author', 'Unknown')}\n[Download]({game.get('link', '#')})",
+                value=f"Version: {game.get('version', 'N/A')} | Size: {game.get('size', 'N/A')} | Date: {game.get('date', 'N/A')}\nAuthor: {author.display_name, "Unknown"}\n[Download]({game.get('link', '#')})",
                 inline=False
             )
-
         await interaction.response.send_message(embed=embed, ephemeral=False)
         
-        
     @app_commands.command(name="deletegame", description="Delete a submitted game")
-    @app_commands.describe(
-        title="Title of the game to delete",
-    )
+    @app_commands.describe(title="Title of the game to delete",)
     async def deletegame(self, interaction: discord.Interaction, title: str):
         member = interaction.user
         if not any(role.name in self.gaming_role for role in member.roles):
@@ -132,9 +129,7 @@ class AllBotCommands(commands.Cog):
     
     
     @app_commands.command(name="game", description="Retrieve a submitted game")
-    @app_commands.describe(
-        title="Title of the game",
-    )
+    @app_commands.describe(title="Title of the game",)
     async def game(self, interaction: discord.Interaction, title: str):
         member = interaction.user
         if not any(role.name in self.gaming_role for role in member.roles):
@@ -146,19 +141,16 @@ class AllBotCommands(commands.Cog):
             await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=False)
             return
         
-        embed = discord.Embed(
-        title=game.get("title"),
-        description=game.get("description", "No description provided."),
-        url=game.get("link"),
-        color=discord.Color.random()
-        )
+        embed = discord.Embed( title=game.get("title"), description=game.get("description", "No description provided."), url=game.get("link"), color=discord.Color.random() )
+        
+        author = await self.bot.fetch_user(int(game["author_id"]))
         embed.set_thumbnail(url=game.get("image_url"))
-        embed.set_author(name="author")
+        embed.set_author(name=author.display_name, icon_url=author.display_avatar.url)
         embed.add_field(name=":tools: Version", value=game.get("version", "N/A"), inline=True)
         embed.add_field(name=":floppy_disk: Size", value=game.get("size", "N/A"), inline=True)
         embed.add_field(name=":date: Release Date", value=game.get("date", "N/A"), inline=True)
         embed.set_image(url=game.get("image_url"))
-        embed.set_footer(text=f"Game submitted by {game.get('author')}")
+        embed.set_footer(text=f"Game submitted by {author.display_name}")
         embed.timestamp = game.get("updated_at")
         view = View()
         emoji = self.bot.get_emoji(1144807049297924116)

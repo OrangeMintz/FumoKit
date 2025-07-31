@@ -73,6 +73,16 @@ class FitGirlAPI:
             
             img = p_tag.find('img')
             image_url = img['src'].strip() if img and img.has_attr('src') else None
+            # PROXY IMAGE URL
+            if image_url:
+                if image_url.startswith("https://"):
+                    stripped_url = image_url[8:]  # Remove 'https://'
+                elif image_url.startswith("http://"):
+                    stripped_url = image_url[7:]  # Remove 'http://'
+                else:
+                    stripped_url = image_url
+                image_url = f"https://images.weserv.nl/?url={stripped_url}"
+            
             strong = p_tag.find_all('strong')
             company = strong[0].get_text(strip=True) if len(strong) > 0 else None
             languages = strong[1].get_text(strip=True) if len(strong) > 1 else None
@@ -95,4 +105,3 @@ class FitGirlAPI:
             'new_releases': results 
         }
         return json_result
-    
