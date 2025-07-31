@@ -14,7 +14,6 @@ class FitGirlCommands(commands.Cog):
         try:
             fitgirl = FitGirlAPI()
             data  = fitgirl.upcoming_release()
-            
             now = datetime.now(timezone.utc)
             
             if data['status'] != 'success' or not data['upcoming_releases']:
@@ -22,13 +21,12 @@ class FitGirlCommands(commands.Cog):
                 return
             
             embed = discord.Embed(title=f'Upcoming Releases - {now.strftime("%B %d, %Y")}', color=discord.Color.green())
-            
             for release in data['upcoming_releases']:
-                embed.add_field(name=f"> {release['title']}", value="", inline=True)   
+                embed.add_field(name=f"> ⇢ {release['title']}", value=f"", inline=False)   
             
             user = await self.bot.fetch_user(505809822239948806)
             embed.set_footer(text=f'Data scraped by {user.display_name}', icon_url=user.display_avatar.url) 
-            embed.timestamp = now
+            # embed.timestamp = now
 
             await interaction.response.send_message(embed=embed, ephemeral=False)
                   
