@@ -95,3 +95,4 @@ class FitGirlAPI:
             'new_releases': results 
         }
         return json_result
+    
