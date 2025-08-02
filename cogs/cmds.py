@@ -106,7 +106,7 @@ class AllBotCommands(commands.Cog):
             author = await self.bot.fetch_user(int(game["author_id"]))
             embed.add_field(
                 name=game.get("title", "No Title"),
-                value=f"Version: {game.get('version', 'N/A')} | Size: {game.get('size', 'N/A')} | Date: {game.get('date', 'N/A')}\nAuthor: {author.display_name, "Unknown"}\n[Download]({game.get('link', '#')})",
+                value=f"Version: {game.get('version', 'N/A')} | Size: {game.get('size', 'N/A')} | Date: {game.get('date', 'N/A')}\nAuthor: {author.display_name}\n[Download]({game.get('link', '#')})",
                 inline=False
             )
         await interaction.response.send_message(embed=embed, ephemeral=False)
