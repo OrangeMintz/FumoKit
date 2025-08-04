@@ -8,12 +8,13 @@ from datetime import datetime, timezone
 class FitGirlCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.fitgirl_api = FitGirlAPI()
         
     @app_commands.command(name="fg_upcoming_release", description="Get upcoming releases from FitGirl Repacks")
     async def fg_upcoming_release(self, interaction: discord.Interaction):
         try:
-            fitgirl = FitGirlAPI()
-            data  = fitgirl.upcoming_release()
+           
+            data  = self.fitgirl_api.upcoming_release()
             now = datetime.now(timezone.utc)
             
             if data['status'] != 'success' or not data['upcoming_releases']:
@@ -37,8 +38,7 @@ class FitGirlCommands(commands.Cog):
     @app_commands.command(name="fg_new_release", description="Get new releases from FitGirl Repacks")
     async def fg_new_release(self, interaction: discord.Interaction):
         try:
-            fitgirl = FitGirlAPI()
-            data = fitgirl.new_release()
+            data = self.fitgirl_api.new_release()
 
             if data['status'] != 'success' or not data['new_releases']:
                 await interaction.response.send_message("No new releases found today.", ephemeral=False)
@@ -71,7 +71,40 @@ class FitGirlCommands(commands.Cog):
             for embed in embeds:
                 await interaction.channel.send(embed=embed)
 
-            # await interaction.response.send_message("✅ Sent today's new releases!", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"Something went wrong: {e}", ephemeral=True)
+            
+    @app_commands.command(name="fg_pink_pawed", description="Get Pink Pawed games from FitGirl Repacks")
+    async def fg_pink_pawed(self, interaction: discord.Interaction):
+        try:
+            data = self.fitgirl_api.pink_pawed()
+
+            if data['status'] != 'success' or not data['pink_pawed_games']:
+                await interaction.response.send_message('No Pink Pawed games found', ephemeral=True)
+                return
+
+            user = await self.bot.fetch_user(505809822239948806)
+            fields_per_embed = 25
+            games = data['pink_pawed_games']
+            embeds = []
+            for i in range(0, len(games), fields_per_embed):
+                chunk = games[i:i + fields_per_embed]
+                embed = discord.Embed(
+                    title='🏆 Pink Pawed Games' if i == 0 else f'🏆 Continued ({i + 1}–{min(i + fields_per_embed, len(games))})',
+                    description=f"Awarded personally by FitGirl • Showing {i + 1} to {min(i + fields_per_embed, len(games))} of {len(games)}",
+                    color=discord.Color.pink(),
+                )
+                for game in chunk:
+                    title = game['title']
+                    link = game['link']
+                    embed.add_field(
+                        name=f"", value=f"• [{title}]({link})", inline=False
+                    )
+                embed.set_footer(text=f"Data scraped by {user.display_name}", icon_url=user.display_avatar.url)
+                embeds.append(embed)
+
+            await interaction.response.send_message(embeds=embeds, ephemeral=False)
+
         except Exception as e:
             await interaction.response.send_message(f"Something went wrong: {e}", ephemeral=True)
 

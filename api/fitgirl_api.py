@@ -7,7 +7,9 @@ from datetime import datetime
 class FitGirlAPI:
     def __init__(self):
         html_content = requests.get('https://fitgirl-repacks.site').text
+        html_content_pinkpawed = requests.get('https://fitgirl-repacks.site/games-with-my-personal-pink-paw-award').text
         self.soup = BeautifulSoup(html_content,'html.parser')
+        self.soup_pinkpawed = BeautifulSoup(html_content_pinkpawed,'html.parser')
         
     def upcoming_release(self):
         entry_div = self.soup.find('div', class_='entry-content')
@@ -104,4 +106,22 @@ class FitGirlAPI:
             'status': 'success',
             'new_releases': results 
         }
+        return json_result
+    
+    def pink_pawed(self):
+        
+        ul_list = self.soup_pinkpawed.find('ul', class_='lcp_catlist')
+        li_list = ul_list.find_all('li')
+        results = []
+        for pink_pawed in li_list:
+            title = pink_pawed.get_text(strip=True)
+            link = pink_pawed.find('a')['href'] if pink_pawed.find('a') else None
+            results.append({
+                'title': title,
+                'link': link
+            })
+            json_result = {
+                'status': 'success',
+                'pink_pawed_games': results
+            }
         return json_result
