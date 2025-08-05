@@ -1,6 +1,5 @@
 .env
 discord.log
 temp
-requirements.txt
 # Ignore Python bytecode files
 __pycache__/
