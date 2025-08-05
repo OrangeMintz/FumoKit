@@ -5,10 +5,6 @@ from discord.ext import commands
 from dotenv import load_dotenv
 load_dotenv()
 
-# RUNNING BOT UNDER WEB SERVICE
-from keep_alive import keep_alive
-keep_alive()
-
 token = os.getenv('DISCORD_TOKEN')
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 
