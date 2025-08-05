@@ -1,4 +1,5 @@
 .env
+run_bot.cmd
 discord.log
 temp
 # Ignore Python bytecode files
