@@ -25,6 +25,7 @@ class AllBotCommands(commands.Cog):
     )
     async def submitgame(self, interaction: discord.Interaction, title: str, description: str, version: str, size: str, date: str, link: str, image_url: str):
         try:
+            
             member = interaction.user
             if not any(role.name in self.gaming_role for role in member.roles):
                 await interaction.response.send_message(":x: You do not have permission to submit games.",
@@ -91,14 +92,16 @@ class AllBotCommands(commands.Cog):
 
     @app_commands.command(name="listgames", description="List all submitted games")
     async def listgames(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
         member = interaction.user
+        
         if not any(role.name in self.gaming_role for role in member.roles):
             await interaction.response.send_message(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
             return
 
         games = GameModel.list_game()
         if not games:
-            await interaction.response.send_message("No games found.", ephemeral=True)
+            await interaction.followup.send("No games found.", ephemeral=True)
             return
 
         embed = discord.Embed(title=":clipboard: Game List", color=discord.Color.blue())
@@ -109,7 +112,7 @@ class AllBotCommands(commands.Cog):
                 value=f"Version: {game.get('version', 'N/A')} | Size: {game.get('size', 'N/A')} | Date: {game.get('date', 'N/A')}\nAuthor: {author.display_name}\n[Download]({game.get('link', '#')})",
                 inline=False
             )
-        await interaction.response.send_message(embed=embed, ephemeral=False)
+        await interaction.followup.send(embed=embed, ephemeral=False)
         
     @app_commands.command(name="deletegame", description="Delete a submitted game")
     @app_commands.describe(title="Title of the game to delete",)
@@ -131,14 +134,15 @@ class AllBotCommands(commands.Cog):
     @app_commands.command(name="game", description="Retrieve a submitted game")
     @app_commands.describe(title="Title of the game",)
     async def game(self, interaction: discord.Interaction, title: str):
+        await interaction.response.defer(thinking=True)
         member = interaction.user
         if not any(role.name in self.gaming_role for role in member.roles):
-            await interaction.response.send_message(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
+            await interaction.followup.send(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
             return
 
         game = GameModel.get_game_by_title(title)
         if not game:
-            await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=False)
+            await interaction.followup.send(f":x: No game found with the title '{title}'.", ephemeral=False)
             return
         
         embed = discord.Embed( title=game.get("title"), description=game.get("description", "No description provided."), url=game.get("link"), color=discord.Color.random() )
@@ -156,7 +160,8 @@ class AllBotCommands(commands.Cog):
         emoji = self.bot.get_emoji(1144807049297924116)
         button = Button(label="Download", style=discord.ButtonStyle.premium, url=game.get("link", "#"), emoji=emoji)
         view.add_item(button)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=False)
+        
 
 async def setup(bot):
     await bot.add_cog(AllBotCommands(bot))
