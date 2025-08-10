@@ -35,27 +35,17 @@ class AllBotCommands(commands.Cog):
             if interaction.channel_id not in self.gaming_channel:
                 await interaction.response.send_message("Please use this command in the designated game channels only.", ephemeral=True)
                 return
-
+            
             now = datetime.now(timezone.utc)
             existing_game = GameModel.get_game_by_title(title)
-
-            if existing_game: 
-                update_fields = {
-                    "author": str(interaction.user),
-                    "author_id": str(interaction.user.id),
-                    "updated_at": now
-                }
-                if description: update_fields["description"] = description
-                if version: update_fields["version"] = version
-                if size: update_fields["size"] = size
-                if date: update_fields["date"] = date
-                if link: update_fields["link"] = link
-                if image_url: update_fields["image_url"] = image_url
-                
-                GameModel.update_game_by_title(title, update_fields)
-                action = 'updated'                
-                
-            else:
+            
+            if not existing_game:
+                if not all([description, version, size, date, link, image_url]):
+                    await interaction.response.send_message(
+                        ":x: This game doesn't exist yet. Please provide all fields to create it.",
+                        ephemeral=True
+                    )
+                    return
                 GameModel.create_game({
                     "author": str(interaction.user),
                     "author_id": str(interaction.user.id),
@@ -70,13 +60,28 @@ class AllBotCommands(commands.Cog):
                     "updated_at": now
                 })
                 action = 'posted'
+                
+            else:
+                update_fields = {
+                    "author": str(interaction.user),
+                    "author_id": str(interaction.user.id),
+                    "updated_at": now
+                }
+                if description: update_fields["description"] = description
+                if version: update_fields["version"] = version
+                if size: update_fields["size"] = size
+                if date: update_fields["date"] = date
+                if link: update_fields["link"] = link
+                if image_url: update_fields["image_url"] = image_url
+                
+                GameModel.update_game_by_title(title, update_fields)
+                action = 'updated'
 
             embed = discord.Embed(
             title=title,
             description=description or existing_game.get("description", ""),
             url=link or existing_game.get("link", ""),
-            color=discord.Color.random()
-            )
+            color=discord.Color.random())
             embed.set_thumbnail(url=image_url or existing_game.get("image_url", ""))
             embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
             embed.add_field(name=":tools: Version", value=version or existing_game.get("version", "N/A"), inline=True)
