@@ -23,7 +23,7 @@ class AllBotCommands(commands.Cog):
         link="Download link",
         image_url="Image URL"
     )
-    async def submitgame(self, interaction: discord.Interaction, title: str, description: str, version: str, size: str, date: str, link: str, image_url: str):
+    async def submitgame(self, interaction: discord.Interaction, title: str, description: str = None, version: str = None, size: str = None, date: str = None, link: str = None, image_url: str = None):
         try:
             
             member = interaction.user
@@ -39,18 +39,22 @@ class AllBotCommands(commands.Cog):
             now = datetime.now(timezone.utc)
             existing_game = GameModel.get_game_by_title(title)
 
-            if existing_game:
-                GameModel.update_game_by_title(title, {
+            if existing_game: 
+                update_fields = {
                     "author": str(interaction.user),
                     "author_id": str(interaction.user.id),
-                    "description": description,
-                    "version": version,
-                    "size": size,
-                    "date": date,
-                    "link": link,
-                    "image_url": image_url,
                     "updated_at": now
-                })
+                }
+                if description: update_fields["description"] = description
+                if version: update_fields["version"] = version
+                if size: update_fields["size"] = size
+                if date: update_fields["date"] = date
+                if link: update_fields["link"] = link
+                if image_url: update_fields["image_url"] = image_url
+                
+                GameModel.update_game_by_title(title, update_fields)
+                action = 'updated'                
+                
             else:
                 GameModel.create_game({
                     "author": str(interaction.user),
@@ -65,25 +69,31 @@ class AllBotCommands(commands.Cog):
                     "created_at": now,
                     "updated_at": now
                 })
+                action = 'posted'
 
-            embed = discord.Embed(title=title, description=description, url=link, color=discord.Color.random())
-            embed.set_thumbnail(url=image_url)
+            embed = discord.Embed(
+            title=title,
+            description=description or existing_game.get("description", ""),
+            url=link or existing_game.get("link", ""),
+            color=discord.Color.random()
+            )
+            embed.set_thumbnail(url=image_url or existing_game.get("image_url", ""))
             embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-            embed.add_field(name=":tools: Version", value=version, inline=True)
-            embed.add_field(name=":floppy_disk: Size", value=size, inline=True)
-            embed.add_field(name=":date: Release Date", value=date, inline=True)
-            embed.set_image(url=image_url)
-            embed.set_footer(text=f"Game submitted by {interaction.user.display_name}")
+            embed.add_field(name=":tools: Version", value=version or existing_game.get("version", "N/A"), inline=True)
+            embed.add_field(name=":floppy_disk: Size", value=size or existing_game.get("size", "N/A"), inline=True)
+            embed.add_field(name=":date: Release Date", value=date or existing_game.get("date", "N/A"), inline=True)
+            embed.set_image(url=image_url or existing_game.get("image_url", ""))
+            embed.set_footer(text=f"Game {action} by {interaction.user.display_name}")
             embed.timestamp = now
             view = View()
             emoji = self.bot.get_emoji(1144807049297924116)
-            button = Button(label="Download", style=discord.ButtonStyle.premium, url=link, emoji=emoji)
+            button = Button(label="Download", style=discord.ButtonStyle.premium, url=link or existing_game.get("link",""), emoji=emoji)
             view.add_item(button)
 
             games_channel = self.bot.get_channel(1255987489907277896)
             if games_channel:
                 await games_channel.send(embed=embed, view=view)
-                await interaction.response.send_message(f"{interaction.user.display_name} posted a game at <#{games_channel.id}>", ephemeral=False)
+                await interaction.response.send_message(f"{interaction.user.display_name} {action} a game at <#{games_channel.id}>", ephemeral=False)
             else:
                 await interaction.response.send_message("Games channel not found.", ephemeral=True)
 
