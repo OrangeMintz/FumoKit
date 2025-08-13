@@ -24,6 +24,7 @@ class AllBotCommands(commands.Cog):
         image_url="Image URL"
     )
     async def submitgame(self, interaction: discord.Interaction, title: str, description: str = None, version: str = None, size: str = None, date: str = None, link: str = None, image_url: str = None):
+        await interaction.response.defer(thinking=True)
         try:
             
             member = interaction.user
@@ -41,10 +42,8 @@ class AllBotCommands(commands.Cog):
             
             if not existing_game:
                 if not all([description, version, size, date, link, image_url]):
-                    await interaction.response.send_message(
-                        ":x: This game doesn't exist yet. Please provide all fields to create it.",
-                        ephemeral=True
-                    )
+                    await interaction.followup.send(":x: This game doesn't exist yet. Please provide all fields to create it.", ephemeral=True)
+                    
                     return
                 GameModel.create_game({
                     "author": str(interaction.user),
@@ -98,12 +97,12 @@ class AllBotCommands(commands.Cog):
             games_channel = self.bot.get_channel(1255987489907277896)
             if games_channel:
                 await games_channel.send(embed=embed, view=view)
-                await interaction.response.send_message(f"{interaction.user.display_name} {action} a game at <#{games_channel.id}>", ephemeral=False)
+                await interaction.followup.send(f"{interaction.user.display_name} {action} a game at <#{games_channel.id}>", ephemeral=False)
             else:
-                await interaction.response.send_message("Games channel not found.", ephemeral=True)
+                await interaction.followup.send("Games channel not found.", ephemeral=True)
 
         except Exception as e:
-            await interaction.response.send_message(f"Something went wrong: {e}", ephemeral=True)
+            await interaction.followup.send(f"Something went wrong: {e}", ephemeral=True)
 
     @app_commands.command(name="listgames", description="List all submitted games")
     async def listgames(self, interaction: discord.Interaction):
@@ -140,7 +139,7 @@ class AllBotCommands(commands.Cog):
         game = GameModel.delete_game(title)
         
         if game.deleted_count == 0:
-            await interaction.response.send_message(f":x: No game found with the title '{title}'.", ephemeral=False)
+            await interaction.followup.send(f":x: No game found with the title '{title}'.", ephemeral=False)
             return
         await interaction.response.send_message(f"<a:walter:1260121444269162506> {interaction.user.display_name} successfully deleted {title}", ephemeral=False)
         return
@@ -152,7 +151,7 @@ class AllBotCommands(commands.Cog):
         await interaction.response.defer(thinking=True)
         member = interaction.user
         if not any(role.name in self.gaming_role for role in member.roles):
-            await interaction.followup.send(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
+            await interaction.response.send_message(":x: You do not have permission to use this command. You need to be a <@&1256005308740927560>", ephemeral=True)
             return
 
         game = GameModel.get_game_by_title(title)
