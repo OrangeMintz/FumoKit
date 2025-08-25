@@ -25,5 +25,6 @@ async def on_ready():
 async def setup_hook():
     await bot.load_extension('cogs.cmds')
     await bot.load_extension('cogs.fg_cmds')
+    await bot.load_extension('cogs.ai_cmds')
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
