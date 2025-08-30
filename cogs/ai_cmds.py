@@ -11,6 +11,7 @@ load_dotenv()
 
 SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "Fallback prompt if missing").replace("\\n", "\n")
 C_SYSTEM_PROMPT = os.getenv("C_SYSTEM_PROMPT", "Fallback prompt if missing").replace("\\n", "\n")
+AI_MODEL = os.getenv("AI_MODEL", "Fallback prompt if missing")
 CREATOR_ID = int(os.getenv("CREATOR_ID", 0))
 
 class AICommands(commands.Cog):
@@ -76,7 +77,7 @@ class AICommands(commands.Cog):
     async def stream_response(self, user_id, prompt, user_display_name, msg):
         try:
             response_stream = ollama.chat(
-                model="artifish/llama3.2-uncensored:latest",
+                model=AI_MODEL,
                 messages=list(self.user_histories[user_id]),
                 stream=True,
                 options={"temperature": 0.7},
