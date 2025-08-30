@@ -5,26 +5,38 @@ import ollama
 import asyncio
 import os
 from dotenv import load_dotenv
+from models.ai_model import AIModel
+
 load_dotenv()
-from pymongo import MongoClient
 
 SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "Fallback prompt if missing").replace("\\n", "\n")
-MONGO_URI = os.getenv("MONGODB_URI")
+C_SYSTEM_PROMPT = os.getenv("C_SYSTEM_PROMPT", "Fallback prompt if missing").replace("\\n", "\n")
+CREATOR_ID = int(os.getenv("CREATOR_ID", 0))
 
 class AICommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.user_histories = {}
-        self.user_locks = {}  # one lock per user
-        self.client = MongoClient(MONGO_URI)
-        self.db = self.client["cirno_db"]
-        self.collection = self.db["user_history"]
+        self.user_locks = {}
 
     def get_lock(self, user_id: int) -> asyncio.Lock:
-        """Get or create a lock for a specific user."""
         if user_id not in self.user_locks:
             self.user_locks[user_id] = asyncio.Lock()
         return self.user_locks[user_id]
+    
+    async def load_user_history(self, user_id: int):
+        system_prompt = SYSTEM_PROMPT
+        if user_id == CREATOR_ID:
+            system_prompt += C_SYSTEM_PROMPT
+        
+        # Load last N messages from DB into memory
+        history = [{"role": "system", "content": system_prompt}]
+        docs = AIModel.get_history(user_id, limit=10)
+        for doc in docs:
+            history.append({"role": "user", "content": doc["prompt"]})
+            history.append({"role": "assistant", "content": doc["response"]})
+        self.user_histories[user_id] = history
+        return history
 
     @app_commands.command(name="prompt", description="Talk with Cirno")
     @app_commands.describe(prompt="Message")
@@ -33,23 +45,24 @@ class AICommands(commands.Cog):
         await interaction.response.defer(thinking=True)
         user_id = interaction.user.id
         user_display_name = interaction.user.display_name
-        # prepare user history if new
+
+        # Load from DB if user history not in memory
         if user_id not in self.user_histories:
-            self.user_histories[user_id] = [
-                {"role": "system", "content": SYSTEM_PROMPT}
-            ]
-        # add user message
+            await self.load_user_history(user_id)
+
+        # Add new user message
         self.user_histories[user_id].append({"role": "user", "content": prompt})
+
         lock = self.get_lock(user_id)
-        # if already busy, tell the user it's queued
+
         if lock.locked():
             await interaction.followup.send(
                 f"❄ **Cirno** is busy with your last question... "
                 f"your prompt has been **queued** \u2705"
             )
-        async with lock:  # ensure prompts queue up per user
+
+        async with lock:
             try:
-                # Always create a brand-new message for this run
                 msg = await interaction.followup.send(
                     f"**{user_display_name}**: {prompt}\n"
                     f"**Cirno**: <:cirnofumo:1260121161149186049> Thinking..."
@@ -61,11 +74,10 @@ class AICommands(commands.Cog):
                 )
 
     async def stream_response(self, user_id, prompt, user_display_name, msg):
-        """Handles streaming AI response sequentially per user."""
         try:
             response_stream = ollama.chat(
                 model="artifish/llama3.2-uncensored:latest",
-                messages=list(self.user_histories[user_id]),  
+                messages=list(self.user_histories[user_id]),
                 stream=True,
                 options={"temperature": 0.7},
             )
@@ -74,7 +86,7 @@ class AICommands(commands.Cog):
             for chunk in response_stream:
                 if "message" in chunk and "content" in chunk["message"]:
                     buffer += chunk["message"]["content"]
-                    if len(buffer) >= 100:  # push partial updates
+                    if len(buffer) >= 100:
                         full_response += buffer
                         await msg.edit(
                             content=f"**{user_display_name}**: {prompt}\n"
@@ -87,20 +99,14 @@ class AICommands(commands.Cog):
                     content=f"**{user_display_name}**: {prompt}\n"
                             f"**Cirno**: {full_response[:2000]}"
                 )
-            # save AI response in history
-            self.collection.insert_one({
-                "user_id": user_id,
-                "prompt": prompt,
-                "response": full_response
-            })
+            # Save to DB
+            AIModel.save_history(user_id, prompt, full_response)
+
         except Exception as e:
-            await msg.edit(content=f"❌ Cirno tried to think really hard, but she found herself dumbfounded 🔌 {e}")
-    async def get_user_history(self, user_id: int):
-        """Retrieve the user's history."""
-        try:
-            return self.collection.find_one({"user_id": user_id})
-        except Exception as e:
-            await msg.edit(content=f"❌ Something went wrong: {e}", ephemeral=True)
+            await msg.edit(
+                content=f"❌ Cirno tried to think really hard, "
+                        f"but she found herself dumbfounded 🔌 {e}"
+            )
 
 async def setup(bot):
     await bot.add_cog(AICommands(bot))
